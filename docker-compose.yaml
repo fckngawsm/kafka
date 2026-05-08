@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   zookeeper:
     image: bitnamilegacy/zookeeper:3.8
@@ -51,3 +49,54 @@ services:
     volumes:
       - ./scripts:/scripts
     command: ["/bin/sh", "/scripts/create-topic.sh"]
+
+  order:
+    image: node:20-alpine
+    working_dir: /app
+    restart: on-failure
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      KAFKA_BROKERS: kafka-1:29092,kafka-2:29093
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "corepack enable && yarn install --frozen-lockfile && yarn workspace order start"
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  notification:
+    image: node:20-alpine
+    working_dir: /app
+    restart: on-failure
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      KAFKA_BROKERS: kafka-1:29092,kafka-2:29093
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "corepack enable && yarn install --frozen-lockfile && yarn workspace notification start"
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  analytics:
+    image: node:20-alpine
+    working_dir: /app
+    restart: on-failure
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      KAFKA_BROKERS: kafka-1:29092,kafka-2:29093
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "corepack enable && yarn install --frozen-lockfile && yarn workspace analytics start"
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
